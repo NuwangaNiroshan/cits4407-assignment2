@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# Name: Nuwanga Niroshan Hewa Wiladdarage
+# ID: 24684008
+# Version Number: 1
+# Date of completion: 2026
+
+# How to run this script: ./analyse trending_videos_clean.csv
+# Summary: Analyses the cleaned trending videos CSV file for CITS4407 Assignment 2
