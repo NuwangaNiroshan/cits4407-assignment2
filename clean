@@ -2,11 +2,11 @@
 
 # Name: Nuwanga Niroshan Hewa Wiladdarage
 # ID: 24684008
-# Version Number: 1
-# Date of completion: 2026
+# Version Number: 2
+# Date of completion: 22 May 2026
 
 # How to run this script: ./clean trending_videos_unclean.csv
-# Summary: Checks the input CSV file before cleaning the trending videos data for CITS4407 Assignment 2
+# Summary: Checks and cleans the unclean trending videos CSV file for CITS4407 Assignment 2
 
 input_csv_file="$1"
 expected_unclean_column_count=7
@@ -43,11 +43,16 @@ then
 fi
 
 # Check that the header has the expected number of columns
-if ! gawk -F',' -v expected_columns="$expected_unclean_column_count" '
+if ! awk -F',' -v expected_columns="$expected_unclean_column_count" '
+    {
+        gsub(/\r/, "", $0)
+    }
+
     NR == 1 {
         if (NF != expected_columns) {
             exit 1
         }
+
         exit 0
     }
 ' "$input_csv_file"
@@ -55,5 +60,57 @@ then
     echo "ERROR: Expected 7 columns in the input"
     exit 1
 fi
+
+# Clean the CSV data and print the cleaned result to standard output
+awk -F',' '
+    BEGIN {
+        OFS = ","
+    }
+
+    {
+        gsub(/\r/, "", $0)
+    }
+
+    NR == 1 {
+        print "video_id", "publish_date", "views", "likes", "dislikes", "comments_disabled"
+        next
+    }
+
+    NF != 7 {
+        next
+    }
+
+    {
+        video_id = $1
+        publish_date = $2
+        views = $3
+        likes = $4
+        dislikes = $5
+        comments_disabled = $6
+
+        if (video_id == "" || publish_date == "" || views == "" || likes == "" || dislikes == "" || comments_disabled == "") {
+            next
+        }
+
+        if (likes == 0 || dislikes == 0) {
+            next
+        }
+
+        sub(/T.*/, "", publish_date)
+
+        if (comments_disabled == "TRUE") {
+            comments_disabled = "True"
+        } else if (comments_disabled == "FALSE") {
+            comments_disabled = "False"
+        }
+
+        cleaned_csv_row = video_id OFS publish_date OFS views OFS likes OFS dislikes OFS comments_disabled
+
+        if (!(cleaned_csv_row in seen_cleaned_rows)) {
+            seen_cleaned_rows[cleaned_csv_row] = 1
+            print video_id, publish_date, views, likes, dislikes, comments_disabled
+        }
+    }
+' "$input_csv_file"
 
 exit 0
