@@ -2,8 +2,160 @@
 
 # Name: Nuwanga Niroshan Hewa Wiladdarage
 # ID: 24684008
-# Version Number: 1
+# Version Number: 2
 # Date of completion: 22 May 2026
 
 # How to run this script: ./analyse trending_videos_clean.csv
 # Summary: Analyses the cleaned trending videos CSV file for CITS4407 Assignment 2
+
+input_csv_file="$1"
+
+# Check that the user provided an input CSV file name
+if [[ $# -eq 0 ]]
+then
+    echo "ERROR: No input CSV file provided"
+    exit 1
+fi
+
+# Check that the input file exists in the current directory
+if [[ ! -f "$input_csv_file" ]]
+then
+    echo "ERROR: Input file not found in the current directory"
+    exit 1
+fi
+
+# Check that the input file has the expected CSV extension
+case "$input_csv_file" in
+    *.csv)
+        ;;
+    *)
+        echo "ERROR: Input file expected in a CSV format"
+        exit 1
+        ;;
+esac
+
+# Check that the input CSV file contains data
+if [[ ! -s "$input_csv_file" ]]
+then
+    echo "ERROR: Empty file provided"
+    exit 1
+fi
+
+# Analyse the cleaned CSV data and print the required results
+awk -F',' '
+    BEGIN {
+        highest_video_occurrence_count = 0
+        total_view_count = 0
+        valid_data_row_count = 0
+
+        maximum_dislike_count = -1
+        highest_engagement_rate = -1
+        least_sentiment_rate = 999999999
+    }
+
+    # Remove carriage return characters if the CSV was edited on Windows
+    {
+        gsub(/\r/, "", $0)
+    }
+
+    # Skip the header row
+    NR == 1 {
+        next
+    }
+
+    # Ignore rows that do not match the cleaned CSV structure
+    NF != 6 {
+        next
+    }
+
+    {
+        video_id = $1
+        publish_date = $2
+        view_count = $3 + 0
+        like_count = $4 + 0
+        dislike_count = $5 + 0
+
+        # Count how many times each video ID appears in the data
+        video_occurrence_count[video_id]++
+
+        if (!(video_id in video_seen_before)) {
+            video_seen_before[video_id] = 1
+            video_order[++unique_video_count] = video_id
+        }
+
+        # Keep totals needed for the mean number of views
+        total_view_count += view_count
+        valid_data_row_count++
+
+        # Track the video or videos with the maximum number of dislikes
+        if (dislike_count > maximum_dislike_count) {
+            maximum_dislike_count = dislike_count
+            maximum_dislike_video_total = 0
+            maximum_dislike_video_ids[++maximum_dislike_video_total] = video_id
+        } else if (dislike_count == maximum_dislike_count) {
+            maximum_dislike_video_ids[++maximum_dislike_video_total] = video_id
+        }
+
+        # Calculate engagement rate for the current video row
+        engagement_rate = (like_count + dislike_count) / view_count
+
+        if (engagement_rate > highest_engagement_rate) {
+            highest_engagement_rate = engagement_rate
+            highest_engagement_video_total = 0
+            highest_engagement_video_ids[++highest_engagement_video_total] = video_id
+            highest_engagement_video_dates[highest_engagement_video_total] = publish_date
+        } else if (engagement_rate == highest_engagement_rate) {
+            highest_engagement_video_ids[++highest_engagement_video_total] = video_id
+            highest_engagement_video_dates[highest_engagement_video_total] = publish_date
+        }
+
+        # Calculate net sentiment rate for the current video row
+        sentiment_rate = (like_count - dislike_count) / view_count
+
+        if (sentiment_rate < least_sentiment_rate) {
+            least_sentiment_rate = sentiment_rate
+            least_sentiment_video_total = 0
+            least_sentiment_video_ids[++least_sentiment_video_total] = video_id
+            least_sentiment_video_dates[least_sentiment_video_total] = publish_date
+        } else if (sentiment_rate == least_sentiment_rate) {
+            least_sentiment_video_ids[++least_sentiment_video_total] = video_id
+            least_sentiment_video_dates[least_sentiment_video_total] = publish_date
+        }
+    }
+
+    END {
+        # Find the highest occurrence count after all video IDs are counted
+        for (video_index = 1; video_index <= unique_video_count; video_index++) {
+            current_video_id = video_order[video_index]
+
+            if (video_occurrence_count[current_video_id] > highest_video_occurrence_count) {
+                highest_video_occurrence_count = video_occurrence_count[current_video_id]
+                most_frequent_video_total = 0
+                most_frequent_video_ids[++most_frequent_video_total] = current_video_id
+            } else if (video_occurrence_count[current_video_id] == highest_video_occurrence_count) {
+                most_frequent_video_ids[++most_frequent_video_total] = current_video_id
+            }
+        }
+
+        # Print all required results in the assignment output format
+        for (video_index = 1; video_index <= most_frequent_video_total; video_index++) {
+            print "Most frequent video, ID: " most_frequent_video_ids[video_index]
+        }
+
+        printf "Mean number of views: %.2f\n", total_view_count / valid_data_row_count
+
+        for (video_index = 1; video_index <= maximum_dislike_video_total; video_index++) {
+            print "Max dislikes video, ID: " maximum_dislike_video_ids[video_index]
+        }
+
+        for (video_index = 1; video_index <= highest_engagement_video_total; video_index++) {
+            print "Highest engagement rate video, ID: " highest_engagement_video_ids[video_index] ", dated: " highest_engagement_video_dates[video_index]
+        }
+
+        for (video_index = 1; video_index <= least_sentiment_video_total; video_index++) {
+            print "Least sentiment rate video, ID: " least_sentiment_video_ids[video_index] ", dated: " least_sentiment_video_dates[video_index]
+        }
+    }
+' "$input_csv_file"
+
+exit 0
