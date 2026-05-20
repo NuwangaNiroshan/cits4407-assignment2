@@ -1,0 +1,12 @@
+# Temporary test files
+my_clean.csv
+wrong.txt
+empty.csv
+bad_columns.csv
+
+# Final submission files created after the last commit
+git_backup/
+*.zip
+
+# macOS system file
+.DS_Store
