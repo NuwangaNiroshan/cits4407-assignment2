@@ -2,13 +2,14 @@
 
 # Name: Nuwanga Niroshan Hewa Wiladdarage
 # ID: 24684008
-# Version Number: 2
+# Version Number: 4
 # Date of completion: 22 May 2026
 
 # How to run this script: ./analyse trending_videos_clean.csv
 # Summary: Analyses the cleaned trending videos CSV file for CITS4407 Assignment 2
 
 input_csv_file="$1"
+expected_clean_column_count=6
 
 # Check that the user provided an input CSV file name
 if [[ $# -eq 0 ]]
@@ -42,7 +43,7 @@ then
 fi
 
 # Analyse the cleaned CSV data and print the required results
-awk -F',' '
+awk -F',' -v expected_columns="$expected_clean_column_count" '
     BEGIN {
         highest_video_occurrence_count = 0
         total_view_count = 0
@@ -64,7 +65,7 @@ awk -F',' '
     }
 
     # Ignore rows that do not match the cleaned CSV structure
-    NF != 6 {
+    NF != expected_columns {
         next
     }
 
@@ -74,6 +75,11 @@ awk -F',' '
         view_count = $3 + 0
         like_count = $4 + 0
         dislike_count = $5 + 0
+
+        # Skip rows where rates cannot be calculated safely
+        if (view_count == 0) {
+            next
+        }
 
         # Count how many times each video ID appears in the data
         video_occurrence_count[video_id]++
