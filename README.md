@@ -25,6 +25,9 @@ The scripts use Unix tools covered in the unit, mainly Bash and awk.
 - `trending_videos_clean.csv`  
   Cleaned reference file used for Question 2 testing
 
+- `.gitignore`  
+  Ignores temporary testing files and final submission files
+
 ## How to run
 
 Give execute permission first:
